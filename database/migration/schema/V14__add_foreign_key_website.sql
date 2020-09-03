@@ -1,0 +1,1 @@
+ALTER TABLE `website` ADD FOREIGN KEY (`owner_id`) REFERENCES `owner` (`id`);

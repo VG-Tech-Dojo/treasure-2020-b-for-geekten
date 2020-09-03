@@ -1,0 +1,1 @@
+ALTER TABLE `reservation` ADD FOREIGN KEY (`lesson_id`) REFERENCES `lesson` (`id`);

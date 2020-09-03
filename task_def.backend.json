@@ -1,0 +1,85 @@
+{
+  "family": "treasure-2020-b-back",
+  "executionRoleArn": "arn:aws:iam::281032752072:role/ecs-exec-role",
+  "containerDefinitions": [
+    {
+      "name": "treasure-2020-b-back",
+      "image": "281032752072.dkr.ecr.ap-northeast-1.amazonaws.com/treasure-2020-b:backend",
+      "privileged": true,
+      "cpu": 512,
+      "memory": 1024,
+      "ulimits": [
+        {
+          "name": "nofile",
+          "softLimit": 1024,
+          "hardLimit": 1024
+        }
+      ],
+      "environment": [
+        { "name": "FRONTEND_BASE", "value": "https://group-b.treasure2020.dojo-voyage.net" }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_DATASOURCE",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/db/datasource/prod"
+        },
+        {
+          "name": "SERVICE_ACCOUNT_KEY",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/gcp/service_account/key"
+        },
+        {
+          "name": "ZOOM_CLIENT_ID",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/zoom/client_id"
+        },
+        {
+          "name": "ZOOM_CLIENT_SECRET",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/zoom/client_secret"
+        },
+        {
+          "name": "ZOOM_REDIRECT_URI",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/zoom/redirect_url"
+        },
+        {
+          "name": "PAYJP_PK_TEST",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/payjp/pk_test"
+        },
+        {
+          "name": "PAYJP_SK_TEST",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/payjp/sk_test"
+        },
+        {
+          "name": "SENDGRID_APIKEY",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/sendgrid/apikey"
+        },
+        {
+          "name": "SENDGRID_SERVICE_EMAIL",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/sendgrid/service/email"
+        }
+      ],
+      "command": [
+        "echo $SERVICE_ACCOUNT_KEY > /tmp/serviceAccount.json && go run cmd/api/main.go -databaseDatasource=$DATABASE_DATASOURCE -serviceAccountKeyPath=/tmp/serviceAccount.json -port=1991"
+      ],
+      "entryPoint": [
+        "sh",
+        "-c"
+       ],
+      "portMappings": [
+        {
+          "hostPort": 0,
+          "protocol": "tcp",
+          "containerPort": 1991
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "treasure-2020-b/container/backend",
+          "awslogs-region": "ap-northeast-1",
+          "awslogs-stream-prefix": "service"
+        }
+      }
+    }
+  ],
+
+  "networkMode": "bridge"
+}

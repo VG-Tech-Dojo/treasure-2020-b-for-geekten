@@ -1,0 +1,103 @@
+name: backend
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'backend/**'
+      - 'task_def.backend.json'
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials from github actions secrets
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+
+      - name: Login to Amazon ECR
+        id: login_ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
+          ECR_REPOSITORY: treasure-2020-b
+          IMAGE_TAG: "backend-${{ github.sha }}"
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: render new task definition
+        id: render-container
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task_def.backend.json
+          container-name: treasure-2020-b-back
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy ecs
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-container.outputs.task-definition }}
+          service: treasure-2020-b-back
+          cluster: treasure-2020-b-cluster
+          wait-for-service-stability: true
+
+      - name: Logout of Amazon ECR
+        if: always()
+        run: docker logout ${{ steps.login_ecr.outputs.registry }}
+
+      - name: workflow finished
+        uses: 8398a7/action-slack@v3.6.1
+        with:
+          status: ${{ job.status }}
+          fields: repo,commit,message,author,job,took,workflow
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always()
+
+      - name: workflow finished
+        uses: 8398a7/action-slack@v3.6.1
+        with:
+          status: ${{ job.status }}
+          fields: repo,commit,message,author,job,took,workflow
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.EBIS_SLACK_WEBHOOK_URL }}
+        if: always()
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%s%3N')"
+
+      - name: deployment tracking
+        env:
+          NR_INSIGHTS_API_KEY: ${{ secrets.NR_INSIGHTS_API_KEY }}
+        run: |
+          curl -k -H "Content-Type: application/json" \
+            -H "Api-Key: $NR_INSIGHTS_API_KEY" \
+            -X POST https://metric-api.newrelic.com/metric/v1 \
+            --data '[{ "metrics":[
+              {
+                "name": "deployment",
+                "type": "gauge",
+                "value": 1.0,
+                "timestamp": ${{ steps.date.outputs.date }},
+                "interval.ms": 1000,
+                "attributes": {
+                  "group": "treasure-2020-b",
+                  "app": "backend",
+                  "status": "${{ job.status }}",
+                  "user": "${{ github.actor }}"
+                }
+              }
+            ]}]'

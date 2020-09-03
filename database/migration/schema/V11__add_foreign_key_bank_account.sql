@@ -1,0 +1,1 @@
+ALTER TABLE `bank_account` ADD FOREIGN KEY (`owner_id`) REFERENCES `owner` (`id`);

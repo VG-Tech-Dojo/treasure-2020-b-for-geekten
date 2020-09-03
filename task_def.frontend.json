@@ -1,0 +1,64 @@
+{
+  "family": "treasure-2020-b-front",
+  "executionRoleArn": "arn:aws:iam::281032752072:role/ecs-exec-role",
+  "containerDefinitions": [
+    {
+      "name": "treasure-2020-b-front",
+      "image": "281032752072.dkr.ecr.ap-northeast-1.amazonaws.com/treasure-2020-b:frontend",
+      "privileged": true,
+      "cpu": 512,
+      "memory": 1024,
+      "ulimits": [
+        {
+          "name": "nofile",
+          "softLimit": 1024,
+          "hardLimit": 1024
+        }
+      ],
+      "environment": [
+        { "name": "BACKEND_API_BASE", "value": "https://api.group-b.treasure2020.dojo-voyage.net" }
+      ],
+      "secrets": [
+        {
+          "name": "FIREBASE_APIKEY",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/gcp/firebase/apikey"
+        },
+        {
+          "name": "FIREBASE_AUTHDOMAIN",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/gcp/firebase/authdomain"
+        },
+        {
+          "name": "ZOOM_CLIENT_ID",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/zoom/client_id"
+        },
+        {
+          "name": "ZOOM_REDIRECT_URI",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/zoom/redirect_url"
+        },
+        {
+          "name": "PAYJP_PK_TEST",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:281032752072:parameter/payjp/pk_test"
+        }
+      ],
+      "command": ["parcel index.html"],
+      "entryPoint": ["sh", "-c"],
+      "portMappings": [
+        {
+          "hostPort": 0,
+          "protocol": "tcp",
+          "containerPort": 1234
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "treasure-2020-b/container/frontend",
+          "awslogs-region": "ap-northeast-1",
+          "awslogs-stream-prefix": "service"
+        }
+      }
+    }
+  ],
+
+  "networkMode": "bridge"
+}

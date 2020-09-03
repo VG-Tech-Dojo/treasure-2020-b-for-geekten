@@ -1,0 +1,9 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - make prod/flyway/info
+      - make prod/flyway/migrate
+      - make prod/flyway/info
+      - make prod/flyway/validate

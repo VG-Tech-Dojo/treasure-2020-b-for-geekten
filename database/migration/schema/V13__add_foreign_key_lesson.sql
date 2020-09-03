@@ -1,0 +1,1 @@
+ALTER TABLE `lesson` ADD FOREIGN KEY (`owner_id`) REFERENCES `owner` (`id`);

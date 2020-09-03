@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  db:
+    command: --default-authentication-plugin=mysql_native_password
+    container_name: treasure-app-db
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    image: mysql:8.0
+    ports:
+      - 3306:3306
+    volumes:
+      - data-volume:/var/lib/mysql
+
+  migration:
+    image: flyway/flyway
+    depends_on:
+      - db
+    container_name: treasure-app-migration
+    volumes:
+      - ./database/migration/schema:/flyway/sql
+
+  api:
+    build:
+      context: ./backend
+    command: reflex -r '\.go$$' -s -- sh -c 'go run cmd/api/main.go -databaseDatasource="${DATABASE_DATASOURCE}" -serviceAccountKeyPath=/tmp/serviceAccount.json -port=1991'
+    container_name: treasure-app-api
+    ports:
+      - 1991:1991
+    environment:
+      - FRONTEND_BASE=http://localhost:1234
+    env_file:
+      - .zoom.env
+      - .payjp.env
+      - .sendgrid.env
+    volumes:
+      - ./backend:/app
+      - ${GOOGLE_APPLICATION_CREDENTIALS}:/tmp/serviceAccount.json
+    working_dir: /app
+
+  frontend:
+    build:
+      context: ./frontend
+    command: parcel index.html --hmr-port 1235 --hmr-hostname 0.0.0.0
+    container_name: treasure-app-frontend
+    ports:
+      - 1234:1234
+      - 1235:1235
+    environment:
+      - BACKEND_API_BASE=http://localhost:1991
+      - CHOKIDAR_USEPOLLING=1
+    env_file:
+      - .firebase.env
+      - .zoom.env
+      - .payjp.env
+    volumes:
+      - ./frontend:/app
+      - treasure-app_node_modules-volume:/app/node_modules
+    working_dir: /app
+    ulimits:
+      nofile:
+        soft: 90000
+        hard: 90000
+
+volumes:
+  data-volume:
+  treasure-app_node_modules-volume:

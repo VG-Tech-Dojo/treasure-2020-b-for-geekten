@@ -1,0 +1,1 @@
+ALTER TABLE `cancellation` ADD FOREIGN KEY (`reservation_id`) REFERENCES `reservation` (`id`);
